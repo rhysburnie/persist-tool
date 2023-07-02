@@ -1,0 +1,17 @@
+{
+  "name": "persist-tool",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "vite": "^4.3.9",
+    "vitest": "^0.32.2",
+    "jsdom": "^22.1.0"
+  }
+}
