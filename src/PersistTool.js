@@ -4,7 +4,7 @@ export const OBFUSCATION = Symbol();
 export const persistToolOptions = {
   prefix: '',
   suffix: '',
-  seperator: ':',
+  seperator: '',
   secret: 42,
   obfuscate,
   deobfuscate,
@@ -27,10 +27,12 @@ export default class PersistTool {
     this.#engine = options.engine || localStorage;
     this.#options = {
       ...persistToolOptions,
-      ...options
+      ...options,
     };
-    if (this.#options.prefix) this.#options.prefix = this.#options.prefix + this.#options.seperator;
-    if (this.#options.suffix) this.#options.suffix = this.#options.seperator + this.#options.suffix;
+    if (this.#options.prefix)
+      this.#options.prefix = this.#options.prefix + this.#options.seperator;
+    if (this.#options.suffix)
+      this.#options.suffix = this.#options.seperator + this.#options.suffix;
     this.#canObfuscate = typeof this.#options.obfuscate === 'function';
     this.#canDeobfuscate = typeof this.#options.deobfuscate === 'function';
   }
@@ -42,23 +44,37 @@ export default class PersistTool {
   setItem(key, value, opts = {}, obfuscate) {
     if (this.#isNoop) return;
 
-    return setItem(this.fullKey(key), value, {
-      ...opts,
-      // these cant be supplies externally
-      secret: this.#options.secret,
-      engine: !opts.localStorage && !opts.sessionStorage && this.#engine,
-    }, obfuscate === OBFUSCATION && this.#canObfuscate && this.options.obfuscate);
+    return setItem(
+      this.fullKey(key),
+      value,
+      {
+        ...opts,
+        // these cant be supplies externally
+        secret: this.#options.secret,
+        engine: !opts.localStorage && !opts.sessionStorage && this.#engine,
+      },
+      obfuscate === OBFUSCATION &&
+        this.#canObfuscate &&
+        this.#options.obfuscate,
+    );
   }
 
   getItem(key, fallback = null, opts = {}, deobfuscate) {
     if (this.#isNoop) return fallback;
 
-    return getItem(this.fullKey(key), fallback, {
-      ...opts,
-      // these cant be supplies externally
-      secret: this.#options.secret,
-      engine: !opts.localStorage && !opts.sessionStorage && this.#engine,
-    }, deobfuscate === OBFUSCATION && this.#canDeobfuscate && this.options.deobfuscate);
+    return getItem(
+      this.fullKey(key),
+      fallback,
+      {
+        ...opts,
+        // these cant be supplies externally
+        secret: this.#options.secret,
+        engine: !opts.localStorage && !opts.sessionStorage && this.#engine,
+      },
+      deobfuscate === OBFUSCATION &&
+        this.#canDeobfuscate &&
+        this.#options.deobfuscate,
+    );
   }
 
   removeItem(key, opts = {}) {
@@ -72,10 +88,12 @@ export default class PersistTool {
 
   get obfuscation() {
     return {
-      setItem: (key, value, opts) => this.setItem(key, value, opts, OBFUSCATION),
-      getItem: (key, fallback, opts) => this.getItem(key, fallback, opts, OBFUSCATION),
-      removeItem: this.removeItem
-    }
+      setItem: (key, value, opts) =>
+        this.setItem(key, value, opts, OBFUSCATION),
+      getItem: (key, fallback, opts) =>
+        this.getItem(key, fallback, opts, OBFUSCATION),
+      removeItem: this.removeItem,
+    };
   }
 
   fullKey(key) {
@@ -84,33 +102,54 @@ export default class PersistTool {
   }
 
   unFullKey(fullKey) {
-    return fullKey.substring(this.#options.prefix.length, fullKey.length - this.#options.suffix.length);
+    if (this.#isNoop) return;
+    return fullKey.substring(
+      this.#options.prefix.length,
+      fullKey.length - this.#options.suffix.length,
+    );
   }
 
   on(key, handler) {
-    const fullKey = this.fullKey(key);
-    if (!eventHandlers.has(fullKey))
-      eventHandlers.set(fullKey, new Map());
-    eventHandlers.get(fullKey).set(handler, wrappedEventHandler(handler, this));
-
+    if (this.#isNoop) return;
+    const keys = key
+      .split(',')
+      .map((k) => k.trim())
+      .filter((k) => k);
+    keys.forEach((k) => {
+      const fullKey = this.fullKey(k);
+      if (!eventHandlers.has(fullKey)) eventHandlers.set(fullKey, new Map());
+      eventHandlers
+        .get(fullKey)
+        .set(handler, wrappedEventHandler(handler, this));
+    });
     // setup the main eventHandler if not setup
     if (!eventHandlers.has(EVENT_HANDLERS_SETUP)) {
       window.addEventListener('storage', eventHandler);
-      eventHandlers.set(EVENT_HANDLERS_SETUP, 1)
+      eventHandlers.set(EVENT_HANDLERS_SETUP, 1);
     }
   }
 
   off(key, handler) {
-    const fullKey = this.fullKey(key);
-    console.log('off', key);
-    if (eventHandlers.has(fullKey)) {
-      eventHandlers.get(fullKey).delete(handler);
-      console.log('off', key, eventHandlers.get(fullKey).has(handler));
-    }
+    if (this.#isNoop) return;
+    const keys = key
+      .split(',')
+      .map((k) => k.trim())
+      .filter((k) => k);
+    keys.forEach((k) => {
+      const fullKey = this.fullKey(k);
+      if (eventHandlers.has(fullKey)) {
+        eventHandlers.get(fullKey).delete(handler);
+      }
+    });
   }
 
-  syncUpdate(e) {
-    //
+  syncUpdate(__e__) {
+    if (this.#isNoop) return;
+    const opts = {};
+    if (__e__.storageArea === localStorage) opts.localStorage = localStorage;
+    if (__e__.storageArea === sessionStorage)
+      opts.sessionStorage = sessionStorage;
+    this.setItem(__e__.key, __e__.newValue, opts);
   }
 }
 
@@ -129,15 +168,16 @@ function eventHandler(e) {
 
 export function wrappedEventHandler(handler, instance) {
   return (e) => {
-    handler({
+    const __e__ = {
       e,
       key: instance.unFullKey(e.key),
       fullKey: e.key,
       newValue: e.newValue,
       oldValue: e.oldValue,
       storageArea: e.storageArea,
-      url: e.url
-    }, () => instance.syncUpdate(e));
+      url: e.url,
+    };
+    handler(__e__, () => instance.syncUpdate(__e__));
   };
 }
 
@@ -148,14 +188,12 @@ function setItem(fullKey, value, opts = {}, obfuscate) {
     removeItem(fullKey, opts);
   } else {
     try {
-      value = typeof value === 'string'
-        ? value
-        : JSON.stringify(value);
- 
+      value = typeof value === 'string' ? value : JSON.stringify(value);
+
       if (obfuscate) {
         value = obfuscate(value, opts.secret);
       }
-      engine.setItem(fullKey ,value)
+      engine.setItem(fullKey, value);
     } catch (err) {
       console.error(err);
     }
@@ -174,14 +212,14 @@ function getItem(fullKey, fallback = null, opts = {}, deobfuscate) {
       rawValue = deobfuscate(rawValue, opts.secret);
     }
     value = opts.raw ? rawValue : JSON.parse(rawValue);
-    if (value === null || typeof value === 'undefined')
-      value = fallback;
-  } catch(err) {
+    if (value === null || typeof value === 'undefined') value = fallback;
+  } catch (err) {
     // console.error(err);
     // console.log(rawValue, typeof rawValue, typeof rawValue === 'string' && rawValue !== 'undefined');
-    value = typeof rawValue === 'string' && rawValue !== 'undefined'
-    ? rawValue
-    : fallback;
+    value =
+      typeof rawValue === 'string' && rawValue !== 'undefined'
+        ? rawValue
+        : fallback;
   }
   // console.log({value})
   return value;
@@ -198,10 +236,14 @@ function getEngine(opts) {
   return engine;
 }
 
-function obfuscate(str, key) {
-  return [...str].map((c) => String.fromCharCode(c.charCodeAt(0) + key)).join('');
+function obfuscate(str, secret) {
+  return [...str]
+    .map((c) => String.fromCharCode(c.charCodeAt(0) + secret))
+    .join('');
 }
 
-function deobfuscate(str, key) {
-  return [...str].map((c) => String.fromCharCode(c.charCodeAt(0) - key)).join('');
+function deobfuscate(str, secret) {
+  return [...str]
+    .map((c) => String.fromCharCode(c.charCodeAt(0) - secret))
+    .join('');
 }
