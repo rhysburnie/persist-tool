@@ -71,90 +71,103 @@ describe('preflight', () => {
     test('getBatchStore', async () => {
       expect(getBatchStore).toBeTypeOf('function');
       const store = getBatchStore(localStorage, 'group');
-      expect(store).toBeTypeOf('object');
-      expect(store.map).toBeInstanceOf(Map);
-      expect(batchStore.get(localStorage)).toBe(store.map);
+      expect(store).toBeInstanceOf(Map);
       const engineStore = batchStore.get(localStorage).get('group');
-      expect(engineStore.items).toBe(store.items);
-      expect(engineStore.pending).toBe(store.pending);
-
+      expect(engineStore.get('items')).toBe(store.get('items'));
+      expect(engineStore.get('pending')).toBe(store.get('pending'));
       expect(
-        batchStore.get(localStorage).get('group').pending.test,
+        batchStore.get(localStorage).get('group').get('pending').test,
       ).toBeUndefined();
+      store.get('pending').test = { huh: 'wot?' };
+      expect(
+        batchStore.get(localStorage).get('group').get('pending').test,
+      ).toBeTypeOf('object');
+      expect(engineStore.get('pending').test).toBe(store.get('pending').test);
+      delete store.get('pending').test;
+      expect(Object.keys(store.get('pending')).length).toBe(0);
+      expect(
+        batchStore.get(localStorage).get('group').get('pending').test,
+      ).toBeUndefined();
+      expect(
+        getBatchStore(localStorage, 'group').get('pending').test,
+      ).toBeUndefined();
+      store.get('pending').test = { huh: 'wot?' };
+      expect(Object.keys(store.get('pending')).length).toBe(1);
+      expect(
+        batchStore.get(localStorage).get('group').get('pending').test,
+      ).not.toBeUndefined();
+      expect(
+        getBatchStore(localStorage, 'group').get('pending').test,
+      ).not.toBeUndefined();
+      delete engineStore.get('pending').test;
+      expect(Object.keys(store.get('pending')).length).toBe(0);
+      expect(
+        batchStore.get(localStorage).get('group').get('pending').test,
+      ).toBeUndefined();
+      expect(
+        getBatchStore(localStorage, 'group').get('pending').test,
+      ).toBeUndefined();
+    });
 
-      store.pending.test = { huh: 'wot?' };
-
-      expect(batchStore.get(localStorage).get('group').pending.test).toBeTypeOf(
-        'object',
+    test('some additional internals', async () => {
+      const instance = new PersistToolBatch();
+      expect(instance.getBatchItem('test')).toBeUndefined();
+      let store = getBatchStore(
+        instance.engine,
+        instance.options.prefix + instance.options.suffix,
       );
-      expect(engineStore.pending.test).toBe(store.pending.test);
+      expect(store).not.toBeUndefined();
+      expect(Object.keys(store.get('pending')).length).toBe(0);
+      expect(() =>
+        instance.setBatchItem('test', 'OK', {}, false, true),
+      ).not.toThrowError();
+      expect(Object.keys(store.get('pending')).length).toBe(1);
+      expect(store.get('pending').test).toBeTypeOf('object');
+      expect(instance.getBatchItem('test')).toBe('OK');
+      expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+      const ts = Date.now();
+      await wait(1000);
 
-      delete store.pending.test;
-      expect(Object.keys(store.pending).length).toBe(0);
-
-      expect(
-        batchStore.get(localStorage).get('group').pending.test,
-      ).toBeUndefined();
-      expect(getBatchStore(localStorage, 'group').pending.test).toBeUndefined();
-
-      store.pending.test = { huh: 'wot?' };
-      expect(Object.keys(store.pending).length).toBe(1);
-
-      expect(
-        batchStore.get(localStorage).get('group').pending.test,
-      ).not.toBeUndefined();
-      expect(
-        getBatchStore(localStorage, 'group').pending.test,
-      ).not.toBeUndefined();
-
-      delete engineStore.pending.test;
-      expect(Object.keys(store.pending).length).toBe(0);
-
-      expect(
-        batchStore.get(localStorage).get('group').pending.test,
-      ).toBeUndefined();
-      expect(getBatchStore(localStorage, 'group').pending.test).toBeUndefined();
+      const now = Date.now();
+      expect(now - ts > 500).toBe(true);
+      expect(localStorage.getItem(instance.fullKey('test'))).toBe('OK');
+      expect(Object.keys(store.get('pending')).length).toBe(0);
+      expect(instance.getItem('test')).toBe('OK');
+      expect(() => instance.removeItem('test')).not.toThrowError();
+      expect(instance.getItem('test')).toBe(null);
     });
   });
+});
 
-  test('some additional internals', async () => {
-    const instance = new PersistToolBatch();
-    expect(instance.getBatchItem('test')).toBeUndefined();
-    expect(() =>
-      instance.setBatchItem('test', 'OK', {}, false, true),
-    ).not.toThrowError();
+describe('batch verions works as non batched', () => {
+  test('(slow timers in use) setItem, getItem, removeItem', async () => {
+    const delay = 5000; // extreme
+    const instance = new PersistToolBatch({ delay });
+    const store = getBatchStore(localStorage, ''); // only for testing
 
-    const stateStart = JSON.stringify(getBatchStore(localStorage, 'group'));
-    // let store = getBatchStore(
-    //   instance.engine,
-    //   instance.options.prefix + instance.options.suffix,
-    // );
-    // store.wtf = 123;
-    // // console.log(store, instance.engine);
-    // expect(store).not.toBeUndefined();
-    // expect(store.pending.test).toBeTypeOf('object');
-    expect(instance.getBatchItem('test')).toBe('OK');
-    const stateEnd = JSON.stringify(getBatchStore(localStorage, 'group'));
-    const ts = Date.now();
-    await wait(1000);
-    // console.log(store.pending);
-    const now = Date.now();
-    expect(now - ts > 500).toBe(true);
-
-    console.log(stateStart, stateEnd);
-    expect(stateStart).toBe(stateEnd);
-    // console.log(now - ts, ts, now);
-    // store = getBatchStore(
-    //   instance.engine,
-    //   instance.options.prefix + instance.options.suffix,
-    // );
-    // console.log('errrrrr', store.pending.test);
-    // expect(store.pending.test).toBeTypeOf('objecta');
-
-    // console.log(store.pending);
-    expect(localStorage.getItem('test')).toBe(null);
-    expect(instance.getItem('test')).toBe('OK');
-    expect(() => instance.removeBatchItem('test')).not.toThrowError();
     expect(instance.getItem('test')).toBe(null);
-  });
+
+    instance.setItem('test', 123);
+    expect(instance.getItem('test')).toBe(123);
+    expect(localStorage.getItem('test')).toBe(null);
+    expect(Object.keys(store.get('items')).length).toBe(1);
+    expect(Object.keys(store.get('pending')).length).toBe(1);
+    await wait(delay + 50);
+    expect(localStorage.getItem('test')).toBe('123');
+    expect(Object.keys(store.get('pending')).length).toBe(0);
+
+    instance.setItem('test', 456);
+    expect(instance.getItem('test')).toBe(456);
+    expect(localStorage.getItem('test')).toBe('123');
+
+    // remove
+    expect(() => instance.removeItem('test')).not.toThrowError();
+    expect(Object.keys(store.get('items')).length).toBe(0);
+    expect(Object.keys(store.get('pending')).length).toBe(0);
+    expect(instance.getItem('test')).toBe(null);
+    expect(localStorage.getItem('test')).toBe(null);
+    await wait(delay + 50);
+    expect(instance.getItem('test')).toBe(null);
+    expect(localStorage.getItem('test')).toBe(null);
+  }, 15000);
 });

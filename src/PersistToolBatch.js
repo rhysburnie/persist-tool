@@ -22,8 +22,7 @@ export default class PersistToolBatch extends PersistTool {
     if (this.isNoop) return;
     let fullKey;
     if (value === null || typeof value === 'undefined') {
-      this.removeBatchItem(key, opts);
-      PersistTool.prototype.removeItem.call(this, key, opts);
+      this.removeItem(key, opts);
     } else {
       this.setBatchItem(key, value, opts, obfuscate, true);
     }
@@ -48,41 +47,45 @@ export default class PersistToolBatch extends PersistTool {
     return value;
   }
 
+  removeItem(key, opts) {
+    this.removeBatchItem(key, opts);
+    PersistTool.prototype.removeItem.call(this, key, opts);
+  }
+
   getBatchItem(key, opts = {}) {
     if (this.isNoop) return;
-    return getBatchStore(this.getEngine(opts), this.#group).items[key];
+    return getBatchStore(this.getEngine(opts), this.#group).get('items')[key];
   }
 
   setBatchItem(key, value, opts = {}, obfuscate, pending) {
     if (this.isNoop) return;
     const store = getBatchStore(this.getEngine(opts), this.#group);
-    store.items[key] = value;
-    if (pending) store.pending[key] = { value, opts, obfuscate };
-    if (!store.map.has(IN_PROGRESS)) {
-      clearTimeout(store.map.get(TIMER_KEY));
-      store.map.set(
+    store.get('items')[key] = value;
+    if (pending) store.get('pending')[key] = { value, opts, obfuscate };
+    if (!store.has(IN_PROGRESS)) {
+      clearTimeout(store.get(TIMER_KEY));
+      store.set(
         TIMER_KEY,
         setTimeout(() => {
-          store.map.set(IN_PROGRESS, true);
+          store.set(IN_PROGRESS, true);
 
-          const pending = { ...store.pending };
+          const pending = { ...store.get('pending') };
           const entries = Object.entries(pending);
-          // console.log(entries.length, pending);
+
           if (entries.length) {
-            // console.log('huh', store.pending, store, this.engine, this.#group);
-            store.pending = {};
+            store.set('pending', {});
             for (const [key, { value, opts, obfuscate }] of entries) {
-              // console.log('HEY', key, value, opts, obfuscate);
-              // console.log(store.pending);
-              // // delete store.pending[key];
-              // console.log(store.pending);
-              this.setItem(key, value, opts, obfuscate);
+              PersistTool.prototype.setItem.call(
+                this,
+                key,
+                value,
+                opts,
+                obfuscate,
+              );
             }
           }
 
-          store.map.delete(IN_PROGRESS);
-
-          console.log(JSON.stringify(store));
+          store.delete(IN_PROGRESS);
         }, this.#delay),
       );
     }
@@ -91,10 +94,10 @@ export default class PersistToolBatch extends PersistTool {
   removeBatchItem(key, opts = {}) {
     if (this.isNoop) return;
     const store = getBatchStore(this.getEngine(opts), this.#group);
-    store.items[key] = undefined;
-    store.pending[key] = undefined;
-    delete store.items[key];
-    delete store.pending[key];
+    store.get('items')[key] = undefined;
+    store.get('pending')[key] = undefined;
+    delete store.get('items')[key];
+    delete store.get('pending')[key];
     // I feel like we only need delete but the old tool also set undefined
     // so perhaps there was a weird edge case reason, surely delete also results
     // in refs being undefined?
@@ -104,10 +107,8 @@ export default class PersistToolBatch extends PersistTool {
 export function getBatchStore(engine, group) {
   if (!batchStore.has(engine)) batchStore.set(engine, new Map());
   const engineStore = batchStore.get(engine);
-  if (!engineStore.has(group))
-    engineStore.set(group, { items: {}, pending: {} });
-  return {
-    ...engineStore.get(group),
-    map: engineStore,
-  };
+  if (!engineStore.has(group)) {
+    engineStore.set(group, new Map(Object.entries({ items: {}, pending: {} })));
+  }
+  return engineStore.get(group);
 }
