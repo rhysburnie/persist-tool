@@ -391,7 +391,7 @@ describe('obfuscation', () => {
 test('no opperation instance', () => {
   eventHandlers.clear();
   const instance = new PersistTool(PersistTool.AS_NOOP);
-  expect(instance.isNoop()).toBe(true);
+  expect(instance.isNoop).toBe(true);
   const fullKey = instance.setItem('test', '???');
   expect(fullKey).toBeUndefined();
   expect(instance.getItem('test')).toBe(null);

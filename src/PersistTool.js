@@ -1,5 +1,7 @@
 export const AS_NOOP = Symbol();
 export const OBFUSCATION = Symbol();
+const HANDLER_IS_SETUP = Symbol();
+export const eventHandlers = new Map();
 
 export const persistToolOptions = {
   prefix: '',
@@ -18,6 +20,15 @@ export default class PersistTool {
   #canDeobfuscate = false;
   static AS_NOOP = AS_NOOP;
   static OBFUSCATION = OBFUSCATION;
+  get engine() {
+    return this.#engine;
+  }
+  get options() {
+    return this.#options;
+  }
+  get isNoop() {
+    return this.#isNoop;
+  }
 
   constructor(options = {}) {
     if (options === AS_NOOP) {
@@ -37,10 +48,6 @@ export default class PersistTool {
     this.#canDeobfuscate = typeof this.#options.deobfuscate === 'function';
   }
 
-  isNoop() {
-    return this.#isNoop;
-  }
-
   setItem(key, value, opts = {}, obfuscate) {
     if (this.#isNoop) return;
 
@@ -51,11 +58,11 @@ export default class PersistTool {
         ...opts,
         // these cant be supplies externally
         secret: this.#options.secret,
-        engine: !opts.localStorage && !opts.sessionStorage && this.#engine,
       },
       obfuscate === OBFUSCATION &&
         this.#canObfuscate &&
         this.#options.obfuscate,
+      this.getEngine(opts),
     );
   }
 
@@ -69,21 +76,24 @@ export default class PersistTool {
         ...opts,
         // these cant be supplies externally
         secret: this.#options.secret,
-        engine: !opts.localStorage && !opts.sessionStorage && this.#engine,
       },
       deobfuscate === OBFUSCATION &&
         this.#canDeobfuscate &&
         this.#options.deobfuscate,
+      this.getEngine(opts),
     );
   }
 
   removeItem(key, opts = {}) {
     if (this.#isNoop) return;
 
-    removeItem(this.fullKey(key), {
-      ...opts,
-      engine: !opts.localStorage && !opts.sessionStorage && this.#engine,
-    });
+    removeItem(
+      this.fullKey(key),
+      {
+        ...opts,
+      },
+      this.getEngine(opts),
+    );
   }
 
   get obfuscation() {
@@ -123,9 +133,9 @@ export default class PersistTool {
         .set(handler, wrappedEventHandler(handler, this));
     });
     // setup the main eventHandler if not setup
-    if (!eventHandlers.has(EVENT_HANDLERS_SETUP)) {
+    if (!eventHandlers.has(HANDLER_IS_SETUP)) {
       window.addEventListener('storage', eventHandler);
-      eventHandlers.set(EVENT_HANDLERS_SETUP, 1);
+      eventHandlers.set(HANDLER_IS_SETUP, 1);
     }
   }
 
@@ -151,12 +161,16 @@ export default class PersistTool {
       opts.sessionStorage = sessionStorage;
     this.setItem(__e__.key, __e__.newValue, opts);
   }
+
+  getEngine(opts) {
+    if (opts.sessionStorage) return opts.sessionStorage;
+    if (opts.localStorage) return opts.localStorage;
+    return this.#engine;
+  }
 }
 
 // ================================================================
 
-export var eventHandlers = new Map();
-var EVENT_HANDLERS_SETUP = Symbol();
 // single storage event handler handles all
 function eventHandler(e) {
   if (eventHandlers.has(e.key)) {
@@ -181,11 +195,10 @@ export function wrappedEventHandler(handler, instance) {
   };
 }
 
-function setItem(fullKey, value, opts = {}, obfuscate) {
-  const engine = getEngine(opts);
-
+function setItem(fullKey, value, opts = {}, obfuscate, engine) {
   if (value === null || typeof value === 'undefined') {
     removeItem(fullKey, opts);
+    return;
   } else {
     try {
       value = typeof value === 'string' ? value : JSON.stringify(value);
@@ -196,15 +209,15 @@ function setItem(fullKey, value, opts = {}, obfuscate) {
       engine.setItem(fullKey, value);
     } catch (err) {
       console.error(err);
+      return;
     }
+    return fullKey;
   }
-  return fullKey;
 }
 
-function getItem(fullKey, fallback = null, opts = {}, deobfuscate) {
+function getItem(fullKey, fallback = null, opts = {}, deobfuscate, engine) {
   let value;
   let rawValue;
-  let engine = getEngine(opts);
 
   try {
     rawValue = engine.getItem(fullKey);
@@ -225,15 +238,8 @@ function getItem(fullKey, fallback = null, opts = {}, deobfuscate) {
   return value;
 }
 
-function removeItem(fullKey, opts = {}) {
-  getEngine(opts).removeItem(fullKey);
-}
-
-function getEngine(opts) {
-  let engine = opts.engine;
-  if (!engine && opts.sessionStorage) engine = opts.sessionStorage;
-  if (!engine && opts.localStorage) engine = opts.localStorage;
-  return engine;
+function removeItem(fullKey, opts = {}, engine) {
+  engine.removeItem(fullKey);
 }
 
 function obfuscate(str, secret) {
