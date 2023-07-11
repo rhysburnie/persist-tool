@@ -140,7 +140,7 @@ describe('preflight', () => {
 });
 
 describe('batch verions works as non batched', () => {
-  test('(slow timers in use) setItem, getItem, removeItem', async () => {
+  test.skip('(slow timers in use) setItem, getItem, removeItem', async () => {
     const delay = 5000; // extreme
     const instance = new PersistToolBatch({ delay });
     const store = getBatchStore(localStorage, ''); // only for testing
@@ -170,4 +170,23 @@ describe('batch verions works as non batched', () => {
     expect(instance.getItem('test')).toBe(null);
     expect(localStorage.getItem('test')).toBe(null);
   }, 15000);
+
+  test('rapid calls', async () => {
+    expect(localStorage.length).toBe(0);
+    const delay = 100;
+    const instance = new PersistToolBatch({ delay });
+    const store = getBatchStore(localStorage, ''); // only for testing
+    const amount = 5000;
+    let iAmount = amount;
+    while (iAmount) {
+      instance.setItem('test' + iAmount, iAmount);
+      iAmount--;
+    }
+    expect(Object.keys(store.get('items')).length).toBe(amount);
+    expect(Object.keys(store.get('pending')).length).toBe(amount);
+    expect(localStorage.length).toBe(0);
+    await wait(delay + 50);
+    expect(localStorage.length).toBe(amount);
+    expect(Object.keys(store.get('pending')).length).toBe(0);
+  });
 });

@@ -8,21 +8,22 @@ This tool was created as a replacement in a project where multiple methodologies
 
 Based on the combined requirements the tool provides the following:
 
-* automatically stringify / parse data
-* optionally auto prefix and or suffix keys
-* optionally provide mechanism to sync data changed between tabs
-* optionally use obfuscation for the store values
-* (undecided) provide ability to define the storage
+- automatically stringify / parse data
+- optionally auto prefix and or suffix keys
+- optionally provide mechanism to sync data changed between tabs
+- optionally use obfuscation for the store values
+- (undecided) provide ability to define the storage
   technically this already possible, however many alternates use
   promises, so to fully support we will have to use async / await
   no bit deal just not sure we need it at the mo.
-* (undecided) bactch calls
+- bactch calls
   the existing project has a Persist utility that batched calls
   with a debounce, this is due to calls being made frequently
   in short timeframes.
-  this would add more complexity to the code and I'm undecided
-  about it, and perhaps it should be the responsibility of the consumer.
-* provide a "no opperation" instance (more on that later)
+  ~~this would add more complexity to the code and I'm undecided
+  about it, and perhaps it should be the responsibility of the consumer.~~
+  extension class `PersistToolBatch`
+- provide a "no opperation" instance (more on that later)
 
 ## API
 
@@ -71,29 +72,29 @@ The following methods typical to localStorage / sessionStorage and compatible al
 
 The argument signatures of the native methods match, but have additional optional arguments after those.
 
-* `setItem(key, value/*, opts*/)`
-* `getItem(key/*, fallback, opts*/)`
-* `removeItem(key/*,opts*/)`
+- `setItem(key, value/*, opts*/)`
+- `getItem(key/*, fallback, opts*/)`
+- `removeItem(key/*,opts*/)`
 
 TODO add missing
 
 ### Additional API Methods
 
-* `obfuscation.setItem(key, value/*, opts*/)` obfuscated value in storage
-* `obfuscation.getItem(key/*, fallback, opts*/)` get deobfusacetd value
-* `on(key, handler)`
+- `obfuscation.setItem(key, value/*, opts*/)` obfuscated value in storage
+- `obfuscation.getItem(key/*, fallback, opts*/)` get deobfusacetd value
+- `on(key, handler)`
   `handler = (e, sync) => { sync() }`
   syncs change between tabs.
   Note: e is a plain object of:
-  * `key` - this is the `key` you used not necessarily the actual store key (which may have prefix / suffix)
-  * `fullKey` - may be same as key (if no prefix / suffix)
-  * `newValue`
-  * `oldvalue`
-  * `storageArea`
-  * `url`
-  * `e` the original event, the only thing that may differ is `key` and other "real" event properties
-* `off(key, handler)`
-* Typically just for testing
-  * `fullKey(key)` returns prefixed / suffixed key
-  * `unFullKey(fullKey)` returns un prefixed / suffixed key
-  * `syncUpdate(__e__)` this is what `sync` of `handler` runs
+  - `key` - this is the `key` you used not necessarily the actual store key (which may have prefix / suffix)
+  - `fullKey` - may be same as key (if no prefix / suffix)
+  - `newValue`
+  - `oldvalue`
+  - `storageArea`
+  - `url`
+  - `e` the original event, the only thing that may differ is `key` and other "real" event properties
+- `off(key, handler)`
+- Typically just for testing
+  - `fullKey(key)` returns prefixed / suffixed key
+  - `unFullKey(fullKey)` returns un prefixed / suffixed key
+  - `syncUpdate(__e__)` this is what `sync` of `handler` runs
