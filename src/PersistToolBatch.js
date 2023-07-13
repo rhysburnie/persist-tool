@@ -1,4 +1,4 @@
-import PersistTool, { AS_NOOP } from './PersistTool.js';
+import PersistTool, { AS_NOOP, OBFUSCATION } from './PersistTool.js';
 export { AS_NOOP };
 export const batchStore = new Map();
 const TIMER_KEY = Symbol();
@@ -7,9 +7,9 @@ const IN_PROGRESS = Symbol();
 export default class PersistToolBatch extends PersistTool {
   #delay;
   #group;
-  #setTimer;
 
   static AS_NOOP = AS_NOOP;
+  static OBFUSCATION = OBFUSCATION;
 
   constructor(options = {}) {
     super(options);
@@ -25,6 +25,7 @@ export default class PersistToolBatch extends PersistTool {
       this.removeItem(key, opts);
     } else {
       this.setBatchItem(key, value, opts, obfuscate, true);
+      fullKey = this.fullKey(key);
     }
     return fullKey;
   }
@@ -42,7 +43,8 @@ export default class PersistToolBatch extends PersistTool {
         opts,
         deobfuscate,
       );
-      if (value) this.setBatchItem(key, value, opts);
+      if (value !== fallback)
+        this.setBatchItem(key, value, opts /* set to `items` store only */);
     }
     return value;
   }
@@ -60,8 +62,10 @@ export default class PersistToolBatch extends PersistTool {
   setBatchItem(key, value, opts = {}, obfuscate, pending) {
     if (this.isNoop) return;
     const store = getBatchStore(this.getEngine(opts), this.#group);
+    // get items and pending objects and add to them
     store.get('items')[key] = value;
-    if (pending) store.get('pending')[key] = { value, opts, obfuscate };
+    if (!pending) return;
+    store.get('pending')[key] = { value, opts, obfuscate };
     if (!store.has(IN_PROGRESS)) {
       clearTimeout(store.get(TIMER_KEY));
       store.set(

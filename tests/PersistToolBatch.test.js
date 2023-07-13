@@ -1,14 +1,8 @@
 import { vi } from 'vitest';
 import PersistToolBatch, {
-  AS_NOOP as BATCH_AS_NOOP,
   getBatchStore,
   batchStore,
 } from './src/PersistToolBatch.js';
-import PersistTool, {
-  wrappedEventHandler,
-  eventHandlers,
-  AS_NOOP,
-} from './src/PersistTool.js';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -59,7 +53,6 @@ describe('preflight', () => {
 
   test('PersistToolBatch exists - noop works', () => {
     expect(PersistToolBatch).not.toBeUndefined();
-    expect(PersistToolBatch.AS_NOOP).toBe(BATCH_AS_NOOP);
     const instance = new PersistToolBatch(PersistToolBatch.AS_NOOP);
     expect(instance.isNoop).toBe(true);
     expect(/*fullKey = */ instance.setItem('test')).toBeUndefined();
@@ -173,25 +166,125 @@ describe('batch verions works as non batched', () => {
   }, 15000);
 });
 
-test.todo(
-  'simplifed test from main class, things like prefix, obfuscate, sessionStorage',
-);
+describe('simplifed tests from main class', () => {
+  test('prefix / suffix', async () => {
+    const instance = new PersistToolBatch({
+      prefix: 'myPrefix',
+      suffix: 'mySufffix',
+      seperator: '_',
+      delay: 100,
+    });
 
-test('rapid calls', async () => {
-  expect(localStorage.length).toBe(0);
-  const delay = 100;
-  const instance = new PersistToolBatch({ delay });
-  const store = getBatchStore(localStorage, ''); // only for testing
-  const amount = 5000;
-  let iAmount = amount;
-  while (iAmount) {
-    instance.setItem('test' + iAmount, iAmount);
-    iAmount--;
-  }
-  expect(Object.keys(store.get('items')).length).toBe(amount);
-  expect(Object.keys(store.get('pending')).length).toBe(amount);
-  expect(localStorage.length).toBe(0);
-  await wait(delay + 50);
-  expect(localStorage.length).toBe(amount);
-  expect(Object.keys(store.get('pending')).length).toBe(0);
+    expect(instance.fullKey('test')).toBe('myPrefix_test_mySufffix');
+    expect(instance.getItem('test')).toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    expect(instance.setItem('test', true)).toBe(instance.fullKey('test'));
+    expect(instance.getItem('test')).not.toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    await wait(500);
+    expect(instance.getItem('test')).not.toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).not.toBe(null);
+    instance.removeItem('test');
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    expect(instance.getItem('test', 'fallback')).toBe('fallback');
+  });
+
+  test('obfuscation', async () => {
+    const instance = new PersistToolBatch({
+      prefix: 'myPrefix',
+      suffix: 'mySufffix',
+      seperator: '_',
+      delay: 100,
+    });
+
+    expect(instance.obfuscation.getItem('test')).toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    expect(instance.obfuscation.setItem('test', true)).toBe(
+      instance.fullKey('test'),
+    );
+    expect(instance.getItem('test')).not.toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    await wait(500);
+    expect(instance.obfuscation.getItem('test')).toBe(true);
+    expect(localStorage.getItem(instance.fullKey('test'))).not.toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).not.toBe(
+      instance.obfuscation.getItem('test'),
+    );
+    expect(instance.getItem(instance.fullKey('test'))).not.toBe(
+      instance.obfuscation.getItem('test'),
+    );
+    instance.removeItem('test');
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    expect(instance.obfuscation.getItem('test', 'fallback')).toBe('fallback');
+  });
+
+  test('on / off', async () => {
+    const instance = new PersistToolBatch({
+      prefix: 'myPrefix',
+      suffix: 'mySufffix',
+      seperator: '_',
+      delay: 100,
+    });
+
+    const handler = vi.fn((sync) => sync());
+
+    const eventProps = {
+      key: instance.fullKey('test'), // real event key
+      newValue: true,
+      oldValue: null,
+      storageArea: localStorage,
+      url: 'whatever',
+    };
+
+    expect(handler).not.toHaveBeenCalled();
+    expect(instance.obfuscation.getItem('test')).toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    instance.on('test', handler);
+    window.dispatchEvent(new StorageEvent('storage', eventProps));
+    expect(handler).toHaveBeenCalled();
+    expect(instance.obfuscation.getItem('test')).not.toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    await wait(500);
+    expect(localStorage.getItem(instance.fullKey('test'))).not.toBe(null);
+    handler.mockReset();
+    expect(handler).not.toHaveBeenCalled();
+    instance.removeItem('test');
+    instance.off('test', handler);
+    expect(instance.obfuscation.getItem('test')).toBe(null);
+    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
+    window.dispatchEvent(new StorageEvent('storage', eventProps));
+    expect(handler).not.toHaveBeenCalled();
+  });
+});
+
+describe('', () => {
+  test('rapid calls', async () => {
+    expect(localStorage.length).toBe(0);
+    const delay = 1000;
+    const instance = new PersistToolBatch({ delay });
+    const store = getBatchStore(localStorage, ''); // only for testing
+    const amount = 5000;
+    let iAmount = amount;
+    while (iAmount) {
+      instance.setItem(
+        'test' + iAmount,
+        `
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+     incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis 
+     nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+     Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore 
+     eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, 
+     sunt in culpa qui officia deserunt mollit anim id est laborum.
+    `,
+      );
+      iAmount--;
+    }
+    expect(Object.keys(store.get('items')).length).toBe(amount);
+    expect(Object.keys(store.get('pending')).length).toBe(amount);
+    expect(localStorage.length).toBe(0);
+    await wait(delay + 50);
+    // if this fails it can be due to a failure in another test() above
+    expect(localStorage.length).toBe(amount);
+    expect(Object.keys(store.get('pending')).length).toBe(0);
+  });
 });

@@ -36,6 +36,15 @@ In other words, if you were to create multiple instances of `new PersistTool()` 
 
 Use for global generic items.
 
+**Batch version**
+
+Same as normal except it has a `delay` option (default: 500ms)
+
+`const persist = new PersistToolBatch();` /  `const persist = new PersistToolBatch({delay: 1000});`
+
+setItem, getItem, removeItem work instantly writing to a store and the actual (setItem) persist to Storage is delayed on each call.
+Thus after `delay` of the last setItem call all pendizng writes will be added to the Storage.
+
 ### Prefix / Suffix
 
 **prefix**
@@ -73,19 +82,22 @@ The following methods typical to localStorage / sessionStorage and compatible al
 The argument signatures of the native methods match, but have additional optional arguments after those.
 
 - `setItem(key, value/*, opts*/)`
+  - `obfuscation.setItem(key, value/*, opts*/)` obfuscated value in storage
+
 - `getItem(key/*, fallback, opts*/)`
+  - `obfuscation.getItem(key/*, fallback, opts*/)` get deobfusacetd value
+
 - `removeItem(key/*,opts*/)`
+- TODO missing native methods
 
-TODO add missing
+Additional methods
 
-### Additional API Methods
-
-- `obfuscation.setItem(key, value/*, opts*/)` obfuscated value in storage
-- `obfuscation.getItem(key/*, fallback, opts*/)` get deobfusacetd value
 - `on(key, handler)`
-  `handler = (e, sync) => { sync() }`
+  `handler = (sync, e) => { sync() }`
   syncs change between tabs.
-  Note: e is a plain object of:
+  Note: e is a plain object of: for if you need to do something other than just call `sync`
+  Note: there is no need to chack if value is null and manually run `instance.removeItem`, `sync` will do that also.
+
   - `key` - this is the `key` you used not necessarily the actual store key (which may have prefix / suffix)
   - `fullKey` - may be same as key (if no prefix / suffix)
   - `newValue`
@@ -93,8 +105,7 @@ TODO add missing
   - `storageArea`
   - `url`
   - `e` the original event, the only thing that may differ is `key` and other "real" event properties
+
 - `off(key, handler)`
-- Typically just for testing
-  - `fullKey(key)` returns prefixed / suffixed key
-  - `unFullKey(fullKey)` returns un prefixed / suffixed key
-  - `syncUpdate(__e__)` this is what `sync` of `handler` runs
+
+  

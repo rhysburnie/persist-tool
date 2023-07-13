@@ -55,8 +55,8 @@ describe('preflight', () => {
   });
 });
 
-describe('prefixed and or suffixed instances (an instanced with neither)', () => {
-  test('nor prefix / suffix', () => {
+describe('prefixed and or suffixed instances (and instanced with neither)', () => {
+  test('non prefix / suffix', () => {
     const persist = new PersistTool();
     expect(persist.setItem).toBeTypeOf('function');
     expect(persist.getItem).toBeTypeOf('function');
@@ -75,7 +75,7 @@ describe('prefixed and or suffixed instances (an instanced with neither)', () =>
     expect(persist.getItem('test', 'not found', { localStorage })).toBe(
       'test in ls',
     );
-    sessionStorage.removeItem('test'); // just in case
+
     expect(persist.getItem('test', 'not found', { sessionStorage })).toBe(
       'not found',
     );
@@ -137,8 +137,8 @@ describe('storage events', () => {
     expect(instance.fullKey(key)).toBe(expectedFullKey);
     expect(instance.unFullKey(expectedFullKey)).toBe(key);
 
-    const handler = vi.fn((e, sync) => {
-      results.push([e, sync]);
+    const handler = vi.fn((sync, e) => {
+      results.push([sync, e]);
     });
     const wrapped = wrappedEventHandler(handler, instance);
     expect(wrapped).toBeTypeOf('function');
@@ -155,20 +155,18 @@ describe('storage events', () => {
 
     expect(results.length).toBe(1);
     expect(results[0].length).toBe(2);
-
-    expect(results[0][0].key).toBe('test'); // we return expected un prefixed key
-    expect(results[0][0].fullKey).toBe(expectedFullKey);
-    expect(results[0][0].e.key).toBe(expectedFullKey); // original even has fullKey
-    expect(results[0][0].newValue).toBe(eventProps.newValue);
-    expect(results[0][0].e.newValue).toBe(eventProps.newValue);
-    expect(results[0][0].oldValue).toBe(eventProps.oldValue);
-    expect(results[0][0].e.oldValue).toBe(eventProps.oldValue);
-    expect(results[0][0].storageArea).toBe(eventProps.storageArea);
-    expect(results[0][0].e.storageArea).toBe(eventProps.storageArea);
-    expect(results[0][0].url).toBe(eventProps.url);
-    expect(results[0][0].e.url).toBe(eventProps.url);
-
-    expect(results[0][1]).toBeTypeOf('function');
+    expect(results[0][0]).toBeTypeOf('function');
+    expect(results[0][1].key).toBe('test'); // we return expected un prefixed key
+    expect(results[0][1].fullKey).toBe(expectedFullKey);
+    expect(results[0][1].e.key).toBe(expectedFullKey); // original even has fullKey
+    expect(results[0][1].newValue).toBe(eventProps.newValue);
+    expect(results[0][1].e.newValue).toBe(eventProps.newValue);
+    expect(results[0][1].oldValue).toBe(eventProps.oldValue);
+    expect(results[0][1].e.oldValue).toBe(eventProps.oldValue);
+    expect(results[0][1].storageArea).toBe(eventProps.storageArea);
+    expect(results[0][1].e.storageArea).toBe(eventProps.storageArea);
+    expect(results[0][1].url).toBe(eventProps.url);
+    expect(results[0][1].e.url).toBe(eventProps.url);
   });
 
   describe('on / off', () => {
@@ -203,7 +201,7 @@ describe('storage events', () => {
       eventHandlers.clear();
       expect(localStorage.getItem(expectedFullKey)).toBe(null);
       // event test
-      const handler = vi.fn((e /*, sync*/) => {
+      const handler = vi.fn((sync, e) => {
         // Note: its better to just use the sync function
         instance.setItem(e.key, e.newValue);
       });
@@ -242,7 +240,7 @@ describe('storage events', () => {
         storageArea: localStorage,
         url: 'whatever',
       };
-      const handler = vi.fn((e, sync) => {
+      const handler = vi.fn((sync) => {
         /**
          * Rather than running:
          * instance.setItem(e.key, e.newValue);

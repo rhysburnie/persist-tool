@@ -36,6 +36,11 @@ export default class PersistTool {
       return this;
     }
     this.#engine = options.engine || localStorage;
+    if (![localStorage, sessionStorage].includes(this.#engine)) {
+      console.warn(
+        'PersistTool only supports synchronous apis like localStorage and sessionStorage',
+      );
+    }
     this.#options = {
       ...persistToolOptions,
       ...options,
@@ -191,7 +196,7 @@ export function wrappedEventHandler(handler, instance) {
       storageArea: e.storageArea,
       url: e.url,
     };
-    handler(__e__, () => instance.syncUpdate(__e__));
+    handler(() => instance.syncUpdate(__e__), __e__);
   };
 }
 
