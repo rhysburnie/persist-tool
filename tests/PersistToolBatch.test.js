@@ -133,8 +133,7 @@ describe('preflight', () => {
 });
 
 describe('batch verions works as non batched', () => {
-  test.todo('unskip the next test once final');
-  test.skip('(slow timers in use) setItem, getItem, removeItem', async () => {
+  test('(slow timers in use) setItem, getItem, removeItem', async () => {
     const delay = 5000; // extreme
     const instance = new PersistToolBatch({ delay });
     const store = getBatchStore(localStorage, ''); // only for testing
@@ -287,4 +286,41 @@ describe('', () => {
     expect(localStorage.length).toBe(amount);
     expect(Object.keys(store.get('pending')).length).toBe(0);
   });
+});
+
+describe('clear, key and length alternates', () => {
+  test('clearItems', async () => {
+    let instance = new PersistToolBatch();
+    // .clear exists but throw error telling you to use clearItems
+    expect(() => instance.clear()).toThrowError(/clearItems/);
+    // clarItem cant be safely acheive if no prefix / suffix
+    expect(() => instance.clearItems()).toThrowError(/prefix/);
+    instance = new PersistToolBatch({
+      prefix: 'p',
+      suffix: 's',
+      seperator: ':',
+    });
+    // .clear exists but throw error telling you to use clearItems
+    expect(() => instance.clear()).toThrowError(/clearItems/);
+    const keys = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    const expectedFullKeys = keys.map((key) => instance.fullKey(key));
+    keys.forEach((key) => instance.setItem(key, 1));
+    await wait(1000);
+    expect(localStorage.length).toBe(keys.length);
+    const fullKeys = instance.getKeys();
+    expect(fullKeys.length).toBe(keys.length);
+    // expect(fullKeys.join()).toBe(expectedFullKeys.join());
+    expect(() => instance.clearItems()).not.toThrowError(/prefix/);
+    expect(localStorage.length).toBe(0);
+  });
+
+  test('getKeys', async () => {
+    let instance = new PersistToolBatch({ prefix: 'p' });
+    instance.setItem('test', true);
+    expect(instance.getItem('test')).toBe(true);
+    expect(instance.getKeys().length).toBe(1);
+    expect(localStorage.length).toBe(0);
+    await wait(1500);
+    expect(localStorage.length).toBe(1);
+  }, 2000);
 });

@@ -1,6 +1,7 @@
 # PersistTool
 
-Work In Progress
+- `npm test`
+- `npm run bench`
 
 ## Rationale
 
@@ -8,22 +9,23 @@ This tool was created as a replacement in a project where multiple methodologies
 
 Based on the combined requirements the tool provides the following:
 
-- automatically stringify / parse data
-- optionally auto prefix and or suffix keys
-- optionally provide mechanism to sync data changed between tabs
-- optionally use obfuscation for the store values
-- (undecided) provide ability to define the storage
-  technically this already possible, however many alternates use
-  promises, so to fully support we will have to use async / await
-  no bit deal just not sure we need it at the mo.
-- bactch calls
-  the existing project has a Persist utility that batched calls
-  with a debounce, this is due to calls being made frequently
-  in short timeframes.
-  ~~this would add more complexity to the code and I'm undecided
-  about it, and perhaps it should be the responsibility of the consumer.~~
-  extension class `PersistToolBatch`
-- provide a "no opperation" instance (more on that later)
+- [x] automatically stringify / parse data
+- [x] optionally auto prefix and or suffix keys
+- [x] optionally provide mechanism to sync data changed between tabs
+- [x] optionally use obfuscation for the store values
+- [ ] (undecided) provide ability to define the storage
+      technically this already possible, however many alternates use
+      promises, so to fully support we will have to use async / await
+      no bit deal just not sure we need it at the mo.
+- [x] bactch calls
+      the existing project has a Persist utility that batched calls
+      with a debounce, this is due to calls being made frequently
+      in short timeframes.
+      ~~this would add more complexity to the code and I'm undecided
+      about it, and perhaps it should be the responsibility of the consumer.~~
+      extension class `PersistToolBatch`
+- [x] provide a "no opperation" instance (more on that later)
+- [x] a way to `clear` that doesnt clear other persists
 
 ## API
 
@@ -40,7 +42,7 @@ Use for global generic items.
 
 Same as normal except it has a `delay` option (default: 500ms)
 
-`const persist = new PersistToolBatch();` /  `const persist = new PersistToolBatch({delay: 1000});`
+`const persist = new PersistToolBatch();` / `const persist = new PersistToolBatch({delay: 1000});`
 
 setItem, getItem, removeItem work instantly writing to a store and the actual (setItem) persist to Storage is delayed on each call.
 Thus after `delay` of the last setItem call all pendizng writes will be added to the Storage.
@@ -83,29 +85,36 @@ The argument signatures of the native methods match, but have additional optiona
 
 - `setItem(key, value/*, opts*/)`
   - `obfuscation.setItem(key, value/*, opts*/)` obfuscated value in storage
-
 - `getItem(key/*, fallback, opts*/)`
   - `obfuscation.getItem(key/*, fallback, opts*/)` get deobfusacetd value
-
-- `removeItem(key/*,opts*/)`
-- TODO missing native methods
+- `removeItem(key/*,opts = { sessionSTorage | localStorage }*/)`
+- `length` throws error - use `getKeys().length`
+- `clear` throws error - use `clearItems()`
+- `key` throws error - you could check in `getKeys()` tho why would you need to anyway
 
 Additional methods
 
 - `on(key, handler)`
   `handler = (sync, e) => { sync() }`
   syncs change between tabs.
-  Note: e is a plain object of: for if you need to do something other than just call `sync`
+  Note: `e` is a plain object of: for if you need to do something other than just call `sync`
   Note: there is no need to chack if value is null and manually run `instance.removeItem`, `sync` will do that also.
 
-  - `key` - this is the `key` you used not necessarily the actual store key (which may have prefix / suffix)
-  - `fullKey` - may be same as key (if no prefix / suffix)
-  - `newValue`
-  - `oldvalue`
-  - `storageArea`
-  - `url`
-  - `e` the original event, the only thing that may differ is `key` and other "real" event properties
+  - `sync` function
+  - `e`
+    - `key` - this is the `key` you used not necessarily the actual store key (which may have prefix / suffix)
+    - `fullKey` - may be same as key (if no prefix / suffix)
+    - `newValue`
+    - `oldvalue`
+    - `storageArea`
+    - `url`
+    - `e` the original event, the only thing that may differ is `key` and other "real" event properties
 
 - `off(key, handler)`
-
-  
+- `clearItems(/* opts = { sessionStorage | localStorage }*/)`
+  - will throw error is no prefix or suffix
+- `getKeys(/* opts = { sessionStorage | localStorage }*/)`
+  returns array of `fullKey`s always empty if no prefix or suffix
+  if you want "original" keys map the result `instance.getKeys().map(fullKey -> instance.unFullKey(fullKey))`
+- `fullKey(str)` - mainly internal use
+- `unFullKey(str)` - mainly internal use

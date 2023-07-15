@@ -2,7 +2,6 @@ export const AS_NOOP = Symbol();
 export const OBFUSCATION = Symbol();
 const HANDLER_IS_SETUP = Symbol();
 export const eventHandlers = new Map();
-
 export const persistToolOptions = {
   prefix: '',
   suffix: '',
@@ -111,6 +110,18 @@ export default class PersistTool {
     };
   }
 
+  clearItems(opts = {}) {
+    if (this.#isNoop) return;
+    const prefix = this.#options.prefix;
+    const suffix = this.#options.suffix;
+    if (!(prefix || suffix))
+      throw new Error(
+        "clearItems can't be safely run without a prefix and or suffix",
+      );
+    const engine = this.getEngine(opts);
+    this.getKeys().forEach((fullKey) => engine.removeItem(fullKey));
+  }
+
   fullKey(key) {
     if (this.#isNoop) return;
     return this.#options.prefix + key + this.#options.suffix;
@@ -122,6 +133,20 @@ export default class PersistTool {
       this.#options.prefix.length,
       fullKey.length - this.#options.suffix.length,
     );
+  }
+
+  getKeys(opts = {}) {
+    if (this.#isNoop) return [];
+    const prefix = this.#options.prefix;
+    const suffix = this.#options.suffix;
+    if (!(prefix || suffix)) return []; // can't be reliably assessed
+    const fullKeys = [];
+    const engine = this.getEngine(opts);
+    for (let i = 0, c = engine.length; i < c; i++) {
+      const key = engine.key(i);
+      if (key.startsWith(prefix) && key.endsWith(suffix)) fullKeys.push(key);
+    }
+    return fullKeys;
   }
 
   on(key, handler) {
@@ -171,6 +196,18 @@ export default class PersistTool {
     if (opts.sessionStorage) return opts.sessionStorage;
     if (opts.localStorage) return opts.localStorage;
     return this.#engine;
+  }
+
+  clear() {
+    throw new Error('Use clearItems');
+  }
+
+  key() {
+    throw new Error('Use getKeys() to find key by index');
+  }
+
+  get length() {
+    throw new Error('Use getKeys().length');
   }
 }
 

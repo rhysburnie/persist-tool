@@ -417,3 +417,32 @@ test('no opperation instance', () => {
   instance.off('mockHandlers', mockHandler);
   expect(eventHandlers.size).toBe(1);
 });
+
+describe('clear, key and length alternates', () => {
+  test('clear, key and length throws error', () => {
+    const instance = new PersistTool();
+    expect(() => instance.clear()).toThrowError(/clearItems/);
+    expect(() => instance.key(0)).toThrowError(/getKeys/);
+    expect(() => instance.length).toThrowError(/getKeys/);
+  });
+
+  test('clearItems', () => {
+    let instance = new PersistTool();
+    // .clear exists but throw error telling you to use clearItems
+    expect(() => instance.clear()).toThrowError(/clearItems/);
+    // clarItem cant be safely acheive if no prefix / suffix
+    expect(() => instance.clearItems()).toThrowError(/prefix/);
+    instance = new PersistTool({ prefix: 'p', suffix: 's', seperator: ':' });
+    // .clear exists but throw error telling you to use clearItems
+    expect(() => instance.clear()).toThrowError(/clearItems/);
+    const keys = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    const expectedFullKeys = keys.map((key) => instance.fullKey(key));
+    keys.forEach((key) => instance.setItem(key, 1));
+    expect(localStorage.length).toBe(keys.length);
+    const fullKeys = instance.getKeys();
+    expect(fullKeys.length).toBe(keys.length);
+    expect(fullKeys.join()).toBe(expectedFullKeys.join());
+    expect(() => instance.clearItems()).not.toThrowError(/prefix/);
+    expect(localStorage.length).toBe(0);
+  });
+});

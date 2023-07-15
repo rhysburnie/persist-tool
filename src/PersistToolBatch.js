@@ -54,6 +54,12 @@ export default class PersistToolBatch extends PersistTool {
     PersistTool.prototype.removeItem.call(this, key, opts);
   }
 
+  clearItems(opts = {}) {
+    if (this.isNoop) return;
+    PersistTool.prototype.clearItems.call(this, opts);
+    clearBatchStore(this.getEngine(opts), this.#group);
+  }
+
   getBatchItem(key, opts = {}) {
     if (this.isNoop) return;
     return getBatchStore(this.getEngine(opts), this.#group).get('items')[key];
@@ -106,6 +112,12 @@ export default class PersistToolBatch extends PersistTool {
     // so perhaps there was a weird edge case reason, surely delete also results
     // in refs being undefined?
   }
+
+  getKeys(opts = {}) {
+    if (this.isNoop) return;
+    const store = getBatchStore(this.getEngine(opts), this.#group);
+    return Object.keys(store.get('items')).map((key) => this.fullKey(key));
+  }
 }
 
 export function getBatchStore(engine, group) {
@@ -115,4 +127,9 @@ export function getBatchStore(engine, group) {
     engineStore.set(group, new Map(Object.entries({ items: {}, pending: {} })));
   }
   return engineStore.get(group);
+}
+
+function clearBatchStore(engine, group) {
+  const engineStore = batchStore.get(engine);
+  if (engineStore) engineStore.delete(group);
 }
