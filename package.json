@@ -10,8 +10,8 @@
     "test": "vitest",
     "bench": "vitest bench",
     "docs": "jsdoc2md --files src/*.js > DOCS.md",
-    "lint": "eslint"
-    "prepare": "npm run build",
+    "lint": "eslint",
+    "prepare": "npm run build"
   },
   "pre-commit": [
     "lint",
