@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
-import PersistToolBatch, {
+import {
+  PersistToolBatch,
   getBatchStore,
   batchStore,
 } from './src/PersistToolBatch.js';

@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
-import PersistTool, {
+import {
+  PersistTool,
   wrappedEventHandler,
   eventHandlers,
 } from './src/PersistTool.js';

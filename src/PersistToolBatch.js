@@ -1,16 +1,38 @@
-import PersistTool, { AS_NOOP, OBFUSCATION } from './PersistTool.js';
-export { AS_NOOP };
-export const batchStore = new Map();
+import { PersistTool, AS_NOOP, OBFUSCATION } from './PersistTool.js';
+
+/**
+ * @typedef {Object} TypePersistToolBatchOptionsDefault
+ * @extends ParsistTool.TypePersistToolOptionsDefault
+ * @property {Number} [delay=500]
+ */
+
+/**
+ * @typedef {PersistTool.TypeAsNoop} TypeBatchAsNoop - `PersistToolBatch.AS_NOOP`
+ */
+
+/**
+ * @typedef {(TypePersistToolBatchOptionsDefault|TypeBatchAsNoop)} TypePersistToolOptions
+ */
+
+const batchStore = new Map();
 const TIMER_KEY = Symbol();
 const IN_PROGRESS = Symbol();
 
-export default class PersistToolBatch extends PersistTool {
+/**
+ * @module
+ * @description Same API as `PersistTool` with `delay` option that batches the `Storage.setItem` but immedietly sets value to an insternal store for retrival.
+ */
+class PersistToolBatch extends PersistTool {
   #delay;
   #group;
 
   static AS_NOOP = AS_NOOP;
   static OBFUSCATION = OBFUSCATION;
 
+  /**
+   * @param {TypePersistToolBatchOptionsDefault} [options]
+   * @returns {Object} instance
+   */
   constructor(options = {}) {
     super(options);
     this.#delay = this.options.delay || 500;
@@ -18,6 +40,17 @@ export default class PersistToolBatch extends PersistTool {
     this.#group = this.options.prefix + this.options.suffix;
   }
 
+  /**
+   * Sets item to the default Storage or Storage specified in opts with `fullKey` as key.
+   *
+   * @param {String} key
+   * @param {*} value
+   * @param {Object} [opts]
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @returns {(String|undefined)} `fullKey` on undefined if `isNoop`
+   * @private
+   */
   setItem(key, value, opts = {}, obfuscate) {
     if (this.isNoop) return;
     let fullKey;
@@ -30,6 +63,18 @@ export default class PersistToolBatch extends PersistTool {
     return fullKey;
   }
 
+  /**
+   * Sets item to the default Storage or Storage specified in opts with `fullKey` as key.
+   *
+   * @param {String} key
+   * @param {*} [fallback]
+   * @param {Object} [opts]
+   * @param {Boolean} [opts.raw] - get the raw storage value (instead of parsing with JSON)
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @returns {(*|null|TypeGetFallback)}
+   * @private
+   */
   getItem(key, fallback = null, opts = {}, deobfuscate) {
     if (this.isNoop) return fallback;
     // I read you can do this `super.getItem(key, fallback, opts, deobfuscate)`
@@ -49,11 +94,26 @@ export default class PersistToolBatch extends PersistTool {
     return value;
   }
 
-  removeItem(key, opts) {
+  /**
+   * @param {String} key
+   * @param {Object} [opts]
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @void
+   * @private
+   */
+  removeItem(key, opts = {}) {
     this.removeBatchItem(key, opts);
     PersistTool.prototype.removeItem.call(this, key, opts);
   }
 
+  /**
+   * @param {Object} [opts]
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @void
+   * @private
+   */
   clearItems(opts = {}) {
     if (this.isNoop) return;
     PersistTool.prototype.clearItems.call(this, opts);
@@ -113,6 +173,13 @@ export default class PersistToolBatch extends PersistTool {
     // in refs being undefined?
   }
 
+  /**
+   * @param {Object} [opts]
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @returns {Array} - `fullKey` values of the instance
+   * @private
+   */
   getKeys(opts = {}) {
     if (this.isNoop) return;
     const store = getBatchStore(this.getEngine(opts), this.#group);
@@ -120,7 +187,7 @@ export default class PersistToolBatch extends PersistTool {
   }
 }
 
-export function getBatchStore(engine, group) {
+function getBatchStore(engine, group) {
   if (!batchStore.has(engine)) batchStore.set(engine, new Map());
   const engineStore = batchStore.get(engine);
   if (!engineStore.has(group)) {
@@ -133,3 +200,5 @@ function clearBatchStore(engine, group) {
   const engineStore = batchStore.get(engine);
   if (engineStore) engineStore.delete(group);
 }
+
+export { PersistToolBatch, batchStore, getBatchStore };

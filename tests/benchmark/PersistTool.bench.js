@@ -1,6 +1,6 @@
 import { bench } from 'vitest';
 import OldPersist from './old-ref-library-persist.js';
-import PersistToolBatch from '../../src/PersistToolBatch.js';
+import { PersistToolBatch } from '../../src/PersistToolBatch.js';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
