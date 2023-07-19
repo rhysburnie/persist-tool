@@ -3,7 +3,7 @@
   "author": "Rhys Burnie",
   "repository": "github:rhysburnie/persist-tool",
   "description": "A Storage wrapper with several utilities",
-  "keywords": ["Storage","localSTorage","sessionStorage"],
+  "keywords": ["Storage","localStorage","sessionStorage"],
   "license": "ISC",
   "version": "0.0.0",
   "main": "dist/persist-tool.umd.cjs.js",
