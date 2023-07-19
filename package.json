@@ -9,13 +9,13 @@
     "sessionStorage"
   ],
   "license": "ISC",
-  "version": "0.0.1",
-  "main": "dist/persist-tool.umd.cjs.js",
-  "module": "dist/persist-tool.js",
+  "version": "0.0.2",
+  "main": "dist/persist-tool.umd.js",
+  "module": "dist/persist-tool.mjs",
   "exports": {
     ".": {
-      "import": "./dist/persist-tool.js",
-      "require": "./dist/persist-tool.umd.cjs.js"
+      "import": "./dist/persist-tool.mjs",
+      "require": "./dist/persist-tool.umd.js"
     }
   },
   "scripts": {
