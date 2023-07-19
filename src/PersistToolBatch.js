@@ -57,7 +57,7 @@ class PersistToolBatch extends PersistTool {
     if (value === null || typeof value === 'undefined') {
       this.removeItem(key, opts);
     } else {
-      this.setBatchItem(key, value, opts, obfuscate, true);
+      this.#setBatchItem(key, value, opts, obfuscate, true);
       fullKey = this.fullKey(key);
     }
     return fullKey;
@@ -79,7 +79,7 @@ class PersistToolBatch extends PersistTool {
     if (this.isNoop) return fallback;
     // I read you can do this `super.getItem(key, fallback, opts, deobfuscate)`
     // But I cant get that to work
-    let value = this.getBatchItem(key, opts);
+    let value = this.#getBatchItem(key, opts);
     if (!value) {
       value = PersistTool.prototype.getItem.call(
         this,
@@ -89,7 +89,7 @@ class PersistToolBatch extends PersistTool {
         deobfuscate,
       );
       if (value !== fallback)
-        this.setBatchItem(key, value, opts /* set to `items` store only */);
+        this.#setBatchItem(key, value, opts /* set to `items` store only */);
     }
     return value;
   }
@@ -103,7 +103,7 @@ class PersistToolBatch extends PersistTool {
    * @private
    */
   removeItem(key, opts = {}) {
-    this.removeBatchItem(key, opts);
+    this.#removeBatchItem(key, opts);
     PersistTool.prototype.removeItem.call(this, key, opts);
   }
 
@@ -120,12 +120,27 @@ class PersistToolBatch extends PersistTool {
     clearBatchStore(this.getEngine(opts), this.#group);
   }
 
-  getBatchItem(key, opts = {}) {
+  /**
+   * these are exposed for testing purposes
+   * but i dont want them confusing the matter
+   * if you inspect the instance
+   */
+  get _() {
+    return {
+      info: 'internal functions exposed for testing',
+      getBatchItem: (key, opts) => this.#getBatchItem(key, opts),
+      setBatchItem: (key, value, opts, obfuscate, pending) =>
+        this.#setBatchItem(key, value, opts, obfuscate, pending),
+      removeBatchItem: (key, opts) => this.#removeBatchItem(key, opts),
+    };
+  }
+
+  #getBatchItem(key, opts = {}) {
     if (this.isNoop) return;
     return getBatchStore(this.getEngine(opts), this.#group).get('items')[key];
   }
 
-  setBatchItem(key, value, opts = {}, obfuscate, pending) {
+  #setBatchItem(key, value, opts = {}, obfuscate, pending) {
     if (this.isNoop) return;
     const store = getBatchStore(this.getEngine(opts), this.#group);
     // get items and pending objects and add to them
@@ -161,7 +176,7 @@ class PersistToolBatch extends PersistTool {
     }
   }
 
-  removeBatchItem(key, opts = {}) {
+  #removeBatchItem(key, opts = {}) {
     if (this.isNoop) return;
     const store = getBatchStore(this.getEngine(opts), this.#group);
     store.get('items')[key] = undefined;

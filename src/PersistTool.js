@@ -153,13 +153,7 @@ class PersistTool {
   removeItem(key, opts = {}) {
     if (this.#isNoop) return;
 
-    removeItem(
-      this.fullKey(key),
-      {
-        ...opts,
-      },
-      this.getEngine(opts),
-    );
+    removeItem(this.fullKey(key), this.getEngine(opts));
   }
 
   /**
@@ -371,7 +365,7 @@ function wrappedEventHandler(handler, instance) {
  */
 function setItem(fullKey, value, opts = {}, obfuscate, engine) {
   if (value === null || typeof value === 'undefined') {
-    removeItem(fullKey, opts);
+    removeItem(fullKey, engine);
     return;
   } else {
     try {
@@ -428,7 +422,7 @@ function getItem(fullKey, fallback = null, opts = {}, deobfuscate, engine) {
  * @void
  * @private
  */
-function removeItem(fullKey, opts = {}, engine) {
+function removeItem(fullKey, engine) {
   engine.removeItem(fullKey);
 }
 

@@ -447,3 +447,25 @@ describe('clear, key and length alternates', () => {
     expect(localStorage.length).toBe(0);
   });
 });
+
+test('removeItem and setItem(null) remove the item', () => {
+  const instance = new PersistTool();
+  instance.setItem('test', true);
+  expect(instance.getItem('test')).toBe(true);
+  instance.removeItem('test');
+  expect(instance.getItem('test')).toBe(null);
+  instance.setItem('test', true);
+  expect(instance.getItem('test')).toBe(true);
+  instance.setItem('test', null);
+  expect(instance.getItem('test')).toBe(null);
+
+  instance.setItem('test', true, { sessionStorage });
+  expect(instance.getItem('test')).toBe(null);
+  expect(instance.getItem('test', null, { sessionStorage })).toBe(true);
+  instance.removeItem('test', { sessionStorage });
+  expect(instance.getItem('test', null, { sessionStorage })).toBe(null);
+  instance.setItem('test', true, { sessionStorage });
+  expect(instance.getItem('test', null, { sessionStorage })).toBe(true);
+  instance.setItem('test', null, { sessionStorage });
+  expect(instance.getItem('test', null, { sessionStorage })).toBe(null);
+});

@@ -7,5 +7,6 @@ export default defineConfig({
       entry: './src/index.js',
       filename: 'PersistTool',
     },
+    sourcemap: true,
   },
 });

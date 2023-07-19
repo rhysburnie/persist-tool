@@ -105,7 +105,7 @@ describe('preflight', () => {
 
     test('some additional internals', async () => {
       const instance = new PersistToolBatch();
-      expect(instance.getBatchItem('test')).toBeUndefined();
+      expect(instance._.getBatchItem('test')).toBeUndefined();
       let store = getBatchStore(
         instance.engine,
         instance.options.prefix + instance.options.suffix,
@@ -113,11 +113,11 @@ describe('preflight', () => {
       expect(store).not.toBeUndefined();
       expect(Object.keys(store.get('pending')).length).toBe(0);
       expect(() =>
-        instance.setBatchItem('test', 'OK', {}, false, true),
+        instance._.setBatchItem('test', 'OK', {}, false, true),
       ).not.toThrowError();
       expect(Object.keys(store.get('pending')).length).toBe(1);
       expect(store.get('pending').test).toBeTypeOf('object');
-      expect(instance.getBatchItem('test')).toBe('OK');
+      expect(instance._.getBatchItem('test')).toBe('OK');
       expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
       const ts = Date.now();
       await wait(1000);
@@ -324,4 +324,26 @@ describe('clear, key and length alternates', () => {
     await wait(1500);
     expect(localStorage.length).toBe(1);
   }, 2000);
+});
+
+test('removeItem and setItem(null) remove the item', () => {
+  const instance = new PersistToolBatch();
+  instance.setItem('test', true);
+  expect(instance.getItem('test')).toBe(true);
+  instance.removeItem('test');
+  expect(instance.getItem('test')).toBe(null);
+  instance.setItem('test', true);
+  expect(instance.getItem('test')).toBe(true);
+  instance.setItem('test', null);
+  expect(instance.getItem('test')).toBe(null);
+
+  instance.setItem('test', true, { sessionStorage });
+  expect(instance.getItem('test')).toBe(null);
+  expect(instance.getItem('test', null, { sessionStorage })).toBe(true);
+  instance.removeItem('test', { sessionStorage });
+  expect(instance.getItem('test', null, { sessionStorage })).toBe(null);
+  instance.setItem('test', true, { sessionStorage });
+  expect(instance.getItem('test', null, { sessionStorage })).toBe(true);
+  instance.setItem('test', null, { sessionStorage });
+  expect(instance.getItem('test', null, { sessionStorage })).toBe(null);
 });

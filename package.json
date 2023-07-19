@@ -3,16 +3,20 @@
   "author": "Rhys Burnie",
   "repository": "github:rhysburnie/persist-tool",
   "description": "A Storage wrapper with several utilities",
-  "keywords": ["Storage","localStorage","sessionStorage"],
+  "keywords": [
+    "Storage",
+    "localStorage",
+    "sessionStorage"
+  ],
   "license": "ISC",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "dist/persist-tool.umd.cjs.js",
   "module": "dist/persist-tool.js",
   "exports": {
-      ".": {
-          "import": "./dist/persist-tool.js",
-          "require": "./dist/persist-tool.umd.cjs.js"
-      }
+    ".": {
+      "import": "./dist/persist-tool.js",
+      "require": "./dist/persist-tool.umd.cjs.js"
+    }
   },
   "scripts": {
     "dev": "vite",
@@ -24,6 +28,7 @@
     "lint": "eslint"
   },
   "devDependencies": {
+    "crypto-js": "^4.1.1",
     "eslint": "^8.44.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
