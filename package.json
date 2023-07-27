@@ -9,7 +9,7 @@
     "sessionStorage"
   ],
   "license": "ISC",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "dist/persist-tool.umd.js",
   "module": "dist/persist-tool.mjs",
   "exports": {
