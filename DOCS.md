@@ -41,7 +41,7 @@
         * [.getItem(key, [fallback], [opts])](#module_PersistTool..PersistTool+getItem) ⇒ <code>\*</code> \| <code>null</code> \| [<code>TypeGetFallback</code>](#TypeGetFallback)
         * [.removeItem(key, [opts])](#module_PersistTool..PersistTool+removeItem)
         * [.on(key, handler)](#module_PersistTool..PersistTool+on)
-        * [.off(key, handler)](#module_PersistTool..PersistTool+off)
+        * [.off([key], [handler])](#module_PersistTool..PersistTool+off)
         * [.clearItems([opts])](#module_PersistTool..PersistTool+clearItems)
         * [.fullKey(key)](#module_PersistTool..PersistTool+fullKey) ⇒ <code>String</code>
         * [.unFullKey(fullKey)](#module_PersistTool..PersistTool+unFullKey) ⇒ <code>String</code>
@@ -59,7 +59,7 @@
     * [.getItem(key, [fallback], [opts])](#module_PersistTool..PersistTool+getItem) ⇒ <code>\*</code> \| <code>null</code> \| [<code>TypeGetFallback</code>](#TypeGetFallback)
     * [.removeItem(key, [opts])](#module_PersistTool..PersistTool+removeItem)
     * [.on(key, handler)](#module_PersistTool..PersistTool+on)
-    * [.off(key, handler)](#module_PersistTool..PersistTool+off)
+    * [.off([key], [handler])](#module_PersistTool..PersistTool+off)
     * [.clearItems([opts])](#module_PersistTool..PersistTool+clearItems)
     * [.fullKey(key)](#module_PersistTool..PersistTool+fullKey) ⇒ <code>String</code>
     * [.unFullKey(fullKey)](#module_PersistTool..PersistTool+unFullKey) ⇒ <code>String</code>
@@ -143,14 +143,14 @@ Sets item to the default Storage or Storage specified in opts with `fullKey` as 
 
 <a name="module_PersistTool..PersistTool+off"></a>
 
-#### persistTool.off(key, handler)
+#### persistTool.off([key], [handler])
 **Kind**: instance method of [<code>PersistTool</code>](#module_PersistTool..PersistTool)  
 **Void**:   
 
 | Param | Type | Description |
 | --- | --- | --- |
-| key | <code>String</code> | stop listening for StorageEvent changes to this key |
-| handler | <code>function</code> |  |
+| [key] | <code>String</code> | stop listening for StorageEvent changes to this key, if omitted and handler omitted all handlers of instance keys will be removed |
+| [handler] | <code>function</code> | if omitted all handlers for key will be removed |
 
 <a name="module_PersistTool..PersistTool+clearItems"></a>
 
@@ -205,11 +205,17 @@ Same API as `PersistTool` with `delay` option that batches the `Storage.setItem`
 * [PersistToolBatch](#module_PersistToolBatch)
     * [~PersistToolBatch](#module_PersistToolBatch..PersistToolBatch)
         * [new PersistToolBatch([options])](#new_module_PersistToolBatch..PersistToolBatch_new)
+        * [._](#module_PersistToolBatch..PersistToolBatch+_)
 
 <a name="module_PersistToolBatch..PersistToolBatch"></a>
 
 ### PersistToolBatch~PersistToolBatch
 **Kind**: inner class of [<code>PersistToolBatch</code>](#module_PersistToolBatch)  
+
+* [~PersistToolBatch](#module_PersistToolBatch..PersistToolBatch)
+    * [new PersistToolBatch([options])](#new_module_PersistToolBatch..PersistToolBatch_new)
+    * [._](#module_PersistToolBatch..PersistToolBatch+_)
+
 <a name="new_module_PersistToolBatch..PersistToolBatch_new"></a>
 
 #### new PersistToolBatch([options])
@@ -219,6 +225,14 @@ Same API as `PersistTool` with `delay` option that batches the `Storage.setItem`
 | --- | --- |
 | [options] | [<code>TypePersistToolBatchOptionsDefault</code>](#TypePersistToolBatchOptionsDefault) | 
 
+<a name="module_PersistToolBatch..PersistToolBatch+_"></a>
+
+#### persistToolBatch.\_
+these are exposed for testing purposes
+but i dont want them confusing the matter
+if you inspect the instance
+
+**Kind**: instance property of [<code>PersistToolBatch</code>](#module_PersistToolBatch..PersistToolBatch)  
 <a name="TypeAsNoop"></a>
 
 ## TypeAsNoop : <code>Symbol</code>

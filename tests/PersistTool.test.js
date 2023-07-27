@@ -138,8 +138,8 @@ describe('storage events', () => {
     expect(instance.fullKey(key)).toBe(expectedFullKey);
     expect(instance.unFullKey(expectedFullKey)).toBe(key);
 
-    const handler = vi.fn((sync, e) => {
-      results.push([sync, e]);
+    const handler = vi.fn((e, eOriginal) => {
+      results.push([e, eOriginal]);
     });
     const wrapped = wrappedEventHandler(handler, instance);
     expect(wrapped).toBeTypeOf('function');
@@ -156,18 +156,18 @@ describe('storage events', () => {
 
     expect(results.length).toBe(1);
     expect(results[0].length).toBe(2);
-    expect(results[0][0]).toBeTypeOf('function');
-    expect(results[0][1].key).toBe('test'); // we return expected un prefixed key
-    expect(results[0][1].fullKey).toBe(expectedFullKey);
-    expect(results[0][1].e.key).toBe(expectedFullKey); // original even has fullKey
+    expect(results[0][0]).toBeTypeOf('object');
+    expect(results[0][0].key).toBe('test'); // we return expected un prefixed key
+    expect(results[0][0].fullKey).toBe(expectedFullKey);
+    expect(results[0][1].key).toBe(expectedFullKey); // original even has fullKey
+    expect(results[0][0].newValue).toBe(eventProps.newValue);
     expect(results[0][1].newValue).toBe(eventProps.newValue);
-    expect(results[0][1].e.newValue).toBe(eventProps.newValue);
+    expect(results[0][0].oldValue).toBe(eventProps.oldValue);
     expect(results[0][1].oldValue).toBe(eventProps.oldValue);
-    expect(results[0][1].e.oldValue).toBe(eventProps.oldValue);
+    expect(results[0][0].storageArea).toBe(eventProps.storageArea);
     expect(results[0][1].storageArea).toBe(eventProps.storageArea);
-    expect(results[0][1].e.storageArea).toBe(eventProps.storageArea);
+    expect(results[0][0].url).toBe(eventProps.url);
     expect(results[0][1].url).toBe(eventProps.url);
-    expect(results[0][1].e.url).toBe(eventProps.url);
   });
 
   describe('on / off', () => {
@@ -202,17 +202,13 @@ describe('storage events', () => {
       eventHandlers.clear();
       expect(localStorage.getItem(expectedFullKey)).toBe(null);
       // event test
-      const handler = vi.fn((sync, e) => {
-        // Note: its better to just use the sync function
-        instance.setItem(e.key, e.newValue);
-      });
+      const handler = vi.fn((e) => {});
       // on - hadler is running
       instance.on(key, handler);
       const handlers = eventHandlers.get(expectedFullKey);
       expect(handlers.size).toBe(1);
       expect(handler).not.toHaveBeenCalled();
       window.dispatchEvent(new StorageEvent('storage', eventProps));
-      expect(instance.getItem(key, 'xyz')).toBe(eventProps.newValue);
       expect(handler).toHaveBeenCalledTimes(1);
       // off - handler is not running
       instance.off(key, handler);
@@ -223,48 +219,6 @@ describe('storage events', () => {
       window.dispatchEvent(new StorageEvent('storage', eventProps));
       expect(handler).toHaveBeenCalledTimes(1);
       expect(instance.getItem(key)).not.toBe(eventProps.newValue);
-    });
-
-    test('sync shortcut function works', () => {
-      eventHandlers.clear();
-      const instance = new PersistTool({
-        prefix: '_',
-        seperator: '_',
-        suffix: '_',
-      });
-      const key = 'test';
-      const expectedFullKey = '__test__';
-      const eventProps = {
-        key: expectedFullKey, // real event key
-        newValue: 'abc',
-        oldValue: null,
-        storageArea: localStorage,
-        url: 'whatever',
-      };
-      const handler = vi.fn((sync) => {
-        /**
-         * Rather than running:
-         * instance.setItem(e.key, e.newValue);
-         *
-         * sync will do the same
-         * it will also use the matching storageArea
-         * which you would otherwise have to detect and specify
-         *
-         * sync and setItem will run removeItem
-         * if the value null or undefined is detected
-         * to save on storage space
-         */
-        sync();
-      });
-      expect(instance.getItem('test')).toBe(null);
-      instance.on('test', handler);
-      window.dispatchEvent(new StorageEvent('storage', eventProps));
-      expect(instance.getItem('test')).toBe('abc');
-      instance.removeItem('test');
-      expect(instance.getItem('test')).toBe(null);
-      instance.off('test', handler);
-      window.dispatchEvent(new StorageEvent('storage', eventProps));
-      expect(instance.getItem('test')).toBe(null);
     });
 
     test('you can listen for multiple keys with the same handler', () => {
@@ -335,6 +289,33 @@ describe('storage events', () => {
       );
       expect(handler).not.toHaveBeenCalledTimes(6);
       expect(handler).toHaveBeenCalledTimes(3);
+    });
+
+    test('you can remove all handlers of a key', () => {
+      eventHandlers.clear();
+      instance.on('test', () => {});
+      instance.on('test', () => {});
+      instance.on('test', () => {});
+      expect(eventHandlers.get(instance.fullKey('test')).size).toBe(3);
+      instance.off('test');
+      expect(eventHandlers.get(instance.fullKey('test'))).toBe(undefined);
+    });
+
+    test('you can remove all listeners of an instance', () => {
+      eventHandlers.clear();
+      ['test', 'test2', 'test3', 'test4'].forEach((key) =>
+        instance.setItem(key, true),
+      );
+      instance.on('test', () => {});
+      instance.on('test', () => {});
+      instance.on('test', () => {});
+      instance.on('test2', () => {});
+      instance.on('test3', () => {});
+      instance.on('test4', () => {});
+      expect(eventHandlers.size).toBe(4 + 1); // 1 is the HANDLER_IS_SETUP entry
+      expect(eventHandlers.get(instance.fullKey('test')).size).toBe(3);
+      instance.off();
+      expect(eventHandlers.size).toBe(1); // 1 is the HANDLER_IS_SETUP entry
     });
   });
 });

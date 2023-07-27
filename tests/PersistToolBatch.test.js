@@ -226,7 +226,7 @@ describe('simplifed tests from main class', () => {
       delay: 100,
     });
 
-    const handler = vi.fn((sync) => sync());
+    const handler = vi.fn(() => {});
 
     const eventProps = {
       key: instance.fullKey('test'), // real event key
@@ -242,16 +242,10 @@ describe('simplifed tests from main class', () => {
     instance.on('test', handler);
     window.dispatchEvent(new StorageEvent('storage', eventProps));
     expect(handler).toHaveBeenCalled();
-    expect(instance.obfuscation.getItem('test')).not.toBe(null);
-    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
-    await wait(500);
-    expect(localStorage.getItem(instance.fullKey('test'))).not.toBe(null);
     handler.mockReset();
     expect(handler).not.toHaveBeenCalled();
     instance.removeItem('test');
     instance.off('test', handler);
-    expect(instance.obfuscation.getItem('test')).toBe(null);
-    expect(localStorage.getItem(instance.fullKey('test'))).toBe(null);
     window.dispatchEvent(new StorageEvent('storage', eventProps));
     expect(handler).not.toHaveBeenCalled();
   });

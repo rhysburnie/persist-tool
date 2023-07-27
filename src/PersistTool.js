@@ -197,20 +197,29 @@ class PersistTool {
   }
 
   /**
-   * @param {String} key - stop listening for StorageEvent changes to this key
-   * @param {Function} handler
+   * @param {String} [key] - stop listening for StorageEvent changes to this key, if omitted and handler omitted all handlers of instance keys will be removed
+   * @param {Function} [handler] if omitted all handlers for key will be removed
    * @void
    */
   off(key, handler) {
     if (this.#isNoop) return;
+    if (arguments.length === 0) {
+      const keys = this.getKeys()
+        .map((k) => this.unFullKey(k))
+        .join(',');
+      if (keys) this.off(keys);
+      return;
+    }
     const keys = key
       .split(',')
       .map((k) => k.trim())
       .filter((k) => k);
+
     keys.forEach((k) => {
       const fullKey = this.fullKey(k);
       if (eventHandlers.has(fullKey)) {
-        eventHandlers.get(fullKey).delete(handler);
+        if (handler) eventHandlers.get(fullKey).delete(handler);
+        else eventHandlers.delete(fullKey);
       }
     });
   }
@@ -277,20 +286,6 @@ class PersistTool {
   }
 
   /**
-   * @param {Object} __e__
-   * @void
-   * @private
-   */
-  syncUpdate(__e__) {
-    if (this.#isNoop) return;
-    const opts = {};
-    if (__e__.storageArea === localStorage) opts.localStorage = localStorage;
-    if (__e__.storageArea === sessionStorage)
-      opts.sessionStorage = sessionStorage;
-    this.setItem(__e__.key, __e__.newValue, opts);
-  }
-
-  /**
    * @param {Object} opts
    * @param {Storage} [opts.sessionStorage] - use this store instead of the default
    * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
@@ -341,8 +336,7 @@ function eventHandler(e) {
  */
 function wrappedEventHandler(handler, instance) {
   return (e) => {
-    const __e__ = {
-      e,
+    const normalized = {
       key: instance.unFullKey(e.key),
       fullKey: e.key,
       newValue: e.newValue,
@@ -350,7 +344,7 @@ function wrappedEventHandler(handler, instance) {
       storageArea: e.storageArea,
       url: e.url,
     };
-    handler(() => instance.syncUpdate(__e__), __e__);
+    handler(normalized, e);
   };
 }
 
