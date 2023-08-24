@@ -9,7 +9,7 @@
     "sessionStorage"
   ],
   "license": "ISC",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "main": "dist/persist-tool.umd.js",
   "module": "dist/persist-tool.mjs",
   "exports": {
@@ -25,7 +25,8 @@
     "test": "vitest",
     "bench": "vitest bench",
     "docs": "jsdoc2md --files src/*.js > DOCS.md",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "crypto-js": "^4.1.1",
