@@ -1,3 +1,5 @@
+import localStorageSupport from './localStorageSupport.js';
+
 /**
  * @typedef {Symbol} TypeAsNoop - `PersistTool.AS_NOOP`
  */
@@ -49,6 +51,9 @@ class PersistTool {
   #canDeobfuscate = false;
   static AS_NOOP = AS_NOOP;
   static OBFUSCATION = OBFUSCATION;
+  get support() {
+    return localStorageSupport;
+  }
   get engine() {
     return this.#engine;
   }
@@ -64,10 +69,11 @@ class PersistTool {
    * @returns {Object} instance
    */
   constructor(options = {}) {
-    if (options === AS_NOOP) {
+    if (options === AS_NOOP || !localStorageSupport.can) {
       this.#isNoop = true;
       return this;
     }
+    if (!localStorageSupport.exceeded && options.handleExceeded) options.handleExceeded();
     this.#engine = options.engine || localStorage;
     if (![localStorage, sessionStorage].includes(this.#engine)) {
       console.warn(
@@ -428,9 +434,12 @@ function removeItem(fullKey, engine) {
  * @private
  */
 function obfuscate(str, secret) {
-  return [...str]
-    .map((c) => String.fromCharCode(c.charCodeAt(0) + secret))
-    .join('');
+  const key = confirmKey(secret);
+  const encoded = key + encodeURIComponent(str);
+  // Apply a simple shift cipher (shift each char by 1)
+  return Array.from(encoded).map(char => 
+    shiftCypher(char, '+', secret)
+  ).join('');
 }
 
 /**
@@ -440,10 +449,32 @@ function obfuscate(str, secret) {
  * @returns {String}
  * @private
  */
+
 function deobfuscate(str, secret) {
-  return [...str]
-    .map((c) => String.fromCharCode(c.charCodeAt(0) - secret))
-    .join('');
+  const key = confirmKey(secret).slice(1);
+  // Reverse the shift cipher
+  const out = Array.from(str.slice(1)).map(char =>
+    shiftCypher(char, '-', secret)
+  ).join('');
+  
+  if (out.startsWith(key)) {
+    // new mode that supports emoji
+    return decodeURIComponent(out.replace(key, ''));
+  }
+  // legacy item prior to emoji fix
+  return str[0] + out;
+}
+
+function shiftCypher(char, dir, secret) {
+  if (dir === '+') return String.fromCharCode(char.charCodeAt(0) + secret);
+  if (dir === '-') return String.fromCharCode(char.charCodeAt(0) - secret);
+}
+
+// confirm key is added to the string so that
+// any stray stores previously set will still work
+// after adding the emojis fix
+function confirmKey(secret) {
+  return Array.from(String.fromCharCode(Math.floor(Math.random() * 36) + (Math.random() < 0.5 ? 97 : 65)) + secret).map((char) => shiftCypher(char, '+', secret)).join('')
 }
 
 // export default PersistTool;

@@ -53,6 +53,10 @@ describe('preflight', () => {
   test('PersistTool exists', () => {
     expect(PersistTool).not.toBeUndefined();
     expect(PersistTool.AS_NOOP).not.toBeUndefined();
+    const persist = new PersistTool();
+    expect(persist.support).toBeTypeOf('object');
+    expect(persist.support.has).toBe(true);
+    expect(persist.support.can).toBe(true);
   });
 });
 
@@ -342,6 +346,13 @@ describe('obfuscation', () => {
     expect(instance2.obfuscation.getItem('test')).not.toBe(
       instance.obfuscation.getItem('test'),
     );
+  });
+
+  test('emojis should work', () => {
+    const emojiString = '😃🐵💂🏿‍♂️🥸🚀🇹🇩'; // not testing all lol
+    instance.obfuscation.setItem('emojis', emojiString);
+    expect(instance.getItem('emojis')).not.toBe(emojiString);
+    expect(instance.obfuscation.getItem('emojis')).toBe(emojiString);
   });
 
   test('providing custom obfuscation', async () => {

@@ -1,3 +1,4 @@
 import { PersistTool } from './PersistTool.js';
 import { PersistToolBatch } from './PersistToolBatch.js';
-export { PersistTool, PersistToolBatch };
+import localStorageSupport from './localStorageSupport.js';
+export { PersistTool, PersistToolBatch, localStorageSupport };
