@@ -355,6 +355,20 @@ describe('obfuscation', () => {
     expect(instance.obfuscation.getItem('emojis')).toBe(emojiString);
   });
 
+  test('previous obfuscation should work', () => {
+    const expected = 'Hello?';
+    const oldPersist = 'ri';
+    localStorage.setItem('prevObfTest', oldPersist);
+    expect(instance.getItem('prevObfTest')).not.toBe(expected);
+    expect(instance.obfuscation.getItem('prevObfTest')).toBe(expected);
+
+    const obj = {a:1,ok:['yeah!']};
+    const objOldPersist = '¥LLd[VLLdL£KL§';
+    localStorage.setItem('prevObfTest', objOldPersist);
+    expect(instance.getItem('prevObfTest')).not.toBe(obj);
+    expect(instance.obfuscation.getItem('prevObfTest')).toStrictEqual(obj);
+  })
+
   test('providing custom obfuscation', async () => {
     const CryptoJS = await import('crypto-js');
     expect(CryptoJS).not.toBeUndefined();

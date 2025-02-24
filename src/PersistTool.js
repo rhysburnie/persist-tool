@@ -462,7 +462,7 @@ function deobfuscate(str, secret) {
     return decodeURIComponent(out.replace(key, ''));
   }
   // legacy item prior to emoji fix
-  return str[0] + out;
+  return shiftCypher(str[0], '-', secret) + out;
 }
 
 function shiftCypher(char, dir, secret) {
